@@ -1,5 +1,5 @@
 {
-  "name": "render-secure-chat-backend",
+  "name": "suggestserver",
   "version": "1.1.0",
   "description": "Encrypted real-time chat service with a visual telemetry admin dashboard deployed on Render",
   "main": "server.js",
