@@ -222,5 +222,32 @@ app.get('/admin', (req, res) => {
             \`).join('');
 
           } catch (err) {
-console.error("Telemetry collection interrupted:", err);}}// Run data compilation loops every 2 secondsfetchTelemetry();setInterval(fetchTelemetry, 2000);`);});// 5. WebSocket Real-Time Handlersio.on('connection', (socket) => {socket.on('identify', async (username) => {socket.username = username;const newLog = new SessionLog({ username: username, timeIn: new Date() });await newLog.save();onlineUsers.set(username, { socketId: socket.id, logId: newLog._id });console.log([Session Logged] ${username} connected.);});socket.on('private_message', async ({ recipient, message }) => {const cryptoPayload = encryptText(message);const secureMessage = new Message({sender: socket.username,recipient: recipient,encryptedMessage: cryptoPayload.encryptedData,iv: cryptoPayload.iv});await secureMessage.save();const recipientSession = onlineUsers.get(recipient);if (recipientSession) {io.to(recipientSession.socketId).emit('msg_receive', {sender: socket.username,message: message});} else {socket.emit('msg_error', { error: User ${recipient} is currently offline. });}});socket.on('disconnect', async () => {if (socket.username) {const userSession = onlineUsers.get(socket.username);if (userSession) {await SessionLog.findByIdAndUpdate(userSession.logId, { timeOut: new Date() });onlineUsers.delete(socket.username);}console.log([Session Logged] ${socket.username} disconnected.);}});});const PORT = process.env.PORT || 3000;server.listen(PORT, '0.0.0.0', () => console.log(Secure chat engine spinning on port ${PORT}));
+console.error("Telemetry collection interrupted:", err);}}
+// Run data compilation loops every 2 
+secondsfetchTelemetry();setInterval(fetchTelemetry, 2000);`);});// 5. 
+
+WebSocket Real-Time Handlersio.on('connection', (socket) => {socket.on('identify', async (username) => {socket.username = username;
+const newLog = new SessionLog({ username: username, timeIn: new Date() });
+await newLog.save();onlineUsers.set(username, { socketId: socket.id, logId: newLog._id });
+console.log([Session Logged] ${username} connected.);});
+socket.on('private_message', async ({ recipient, message }) => {const cryptoPayload = encryptText(message);const secureMessage = new Message({sender: socket.username,recipient: recipient,encryptedMessage: cryptoPayload.encryptedData,iv: cryptoPayload.iv});
+await secureMessage.save();
+const recipientSession = onlineUsers.get(recipient);
+if (recipientSession) {io.to(recipientSession.socketId).emit('msg_receive', {sender: socket.username,message: message});
+} 
+else {socket.emit('msg_error', { error: User ${recipient} is currently offline. });
+}
+}
+);
+socket.on('disconnect', async () => {if (socket.username) {const userSession = onlineUsers.get(socket.username);
+if (userSession) {await SessionLog.findByIdAndUpdate(userSession.logId, { timeOut: new Date() });
+onlineUsers.delete(socket.username);
+}
+console.log([Session Logged] ${socket.username} disconnected.);
+}
+}
+);
+}
+);
+const PORT = process.env.PORT || 3000;server.listen(PORT, '0.0.0.0', () => console.log(Secure chat engine spinning on port ${PORT}));
 
