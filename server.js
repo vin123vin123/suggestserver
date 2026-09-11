@@ -105,6 +105,7 @@ app.get('/api/admin/data', async (req, res) => {
 });
 
 // UI Web Route: Serves the visual dashboard directly to the browser
+// UI Web Route: Serves the visual dashboard directly to the browser
 app.get('/admin', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -112,7 +113,7 @@ app.get('/admin', (req, res) => {
     <head>
       <meta charset="UTF-8">
       <title>Chat Core Server Dashboard</title>
-      <script src="https://tailwindcss.com"></script>
+      <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-gray-900 text-gray-100 font-sans p-6">
       <div class="max-w-7xl mx-auto">
@@ -191,63 +192,48 @@ app.get('/admin', (req, res) => {
 
             // 2. Render Session Logs
             const sessionBody = document.getElementById('session-table-body');
-            sessionBody.innerHTML = data.sessionTrackingLogs.map(log => {
-              const timeIn = new Date(log.timeIn).toLocaleTimeString();
-              const timeOut = log.timeOut ? new Date(log.timeOut).toLocaleTimeString() : '—';
-              const badge = log.timeOut 
-                ? '<span class="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded">Disconnected</span>'
-                : '<span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded border border-green-500/20">Active</span>';
-              
-              return \`
-                <tr class="hover:bg-gray-700/20">
-                  <td class="py-3 font-medium text-indigo-200">\${log.username}</td>
-                  <td class="py-3 text-gray-300">\${timeIn}</td>
-                  <td class="py-3 text-gray-400">\${timeOut}</td>
-                  <td class="py-3">\${badge}</td>
-                </tr>
-              \`;
-            }).join('');
+            sessionBody.innerHTML = data.sessionTrackingLogs.length === 0
+              ? '<tr><td colspan="4" class="py-4 text-center text-gray-500 italic">No session history records found.</td></tr>'
+              : data.sessionTrackingLogs.map(log => \`
+                  <tr class="text-gray-300">
+                    <td class="py-2.5 font-medium">\${log.username}</td>
+                    <td class="py-2.5 text-gray-400">\${new Date(log.timeIn).toLocaleString()}</td>
+                    <td class="py-2.5 text-gray-400">\${log.timeOut ? new Date(log.timeOut).toLocaleString() : '-'}</td>
+                    <td class="py-2.5">
+                      <span class="\${log.timeOut ? 'text-gray-500' : 'text-green-400 font-medium'}">
+                        \${log.timeOut ? 'Disconnected' : 'Active Session'}
+                      </span>
+                    </td>
+                  </tr>
+                \`).join('');
 
-            // 3. Render Encrypted Chat Data
+            // 3. Render Encrypted Chat History
             const vaultBody = document.getElementById('vault-table-body');
-            vaultBody.innerHTML = data.encryptedVaultRecords.map(msg => \`
-              <tr class="hover:bg-gray-700/20 text-gray-400">
-                <td class="py-2.5 text-gray-500">\${new Date(msg.timestamp).toLocaleTimeString()}</td>
-                <td class="py-2.5 text-blue-400 font-sans font-medium">\${msg.sender}</td>
-                <td class="py-2.5 text-purple-400 font-sans font-medium">\${msg.recipient}</td>
+            vaultBody.innerHTML = data.encryptedVaultRecords.length === 0
+              ? '<tr><td colspan="5" class="py-4 text-center text-gray-500 italic">Vault empty. No payloads recorded.</td></tr>'
+              : data.encryptedVaultRecords.map(msg => \`
+                  <tr class="text-gray-400 border-b border-gray-800/40">
+                    <td class="py-2 text-indigo-300">\${new Date(msg.timestamp).toLocaleTimeString()}</td>
+                    <td class="py-2 text-gray-300 font-sans font-semibold">\${msg.sender}</td>
+                    <td class="py-2 text-gray-300 font-sans font-semibold">\${msg.recipient}</td>
+                    <td class="py-2 text-yellow-500/80 break-all max-w-[150px] pr-4">\${msg.iv}</td>
+                    <td class="py-2 text-red-400/80 break-all">\${msg.encryptedMessage}</td>
+                  </tr>
+                \`).join('');
 
-                <td class="py-2.5 text-amber-500/80 truncate max-w-[120px] font-mono">\${msg.iv}</td>
-                <td class="py-2.5 text-red-400/90 break-all max-w-sm font-mono font-semibold truncate hover:whitespace-normal">\${msg.encryptedMessage}</td>
-              </tr>
-            \`).join('');
+          } catch (error) {
+            console.error('Telemetry dashboard failed to refresh:', error);
+          }
+        }
 
-          } catch (err) {
-console.error("Telemetry collection interrupted:", err);}}
-// Run data compilation loops every 2 
-secondsfetchTelemetry();setInterval(fetchTelemetry, 2000);`);});// 5. 
+        // Initialize and poll dashboard telemetry every 5 seconds
+        fetchTelemetry();
+        setInterval(fetchTelemetry, 5000);
+      </script>
+    </body>
+    </html>
+  `);
+});
 
-WebSocket Real-Time Handlersio.on('connection', (socket) => {socket.on('identify', async (username) => {socket.username = username;
-const newLog = new SessionLog({ username: username, timeIn: new Date() });
-await newLog.save();onlineUsers.set(username, { socketId: socket.id, logId: newLog._id });
-console.log([Session Logged] ${username} connected.);});
-socket.on('private_message', async ({ recipient, message }) => {const cryptoPayload = encryptText(message);const secureMessage = new Message({sender: socket.username,recipient: recipient,encryptedMessage: cryptoPayload.encryptedData,iv: cryptoPayload.iv});
-await secureMessage.save();
-const recipientSession = onlineUsers.get(recipient);
-if (recipientSession) {io.to(recipientSession.socketId).emit('msg_receive', {sender: socket.username,message: message});
-} 
-else {socket.emit('msg_error', { error: User ${recipient} is currently offline. });
-}
-}
-);
-socket.on('disconnect', async () => {if (socket.username) {const userSession = onlineUsers.get(socket.username);
-if (userSession) {await SessionLog.findByIdAndUpdate(userSession.logId, { timeOut: new Date() });
-onlineUsers.delete(socket.username);
-}
-console.log([Session Logged] ${socket.username} disconnected.);
-}
-}
-);
-}
-);
-const PORT = process.env.PORT || 3000;server.listen(PORT, '0.0.0.0', () => console.log(Secure chat engine spinning on port ${PORT}));
+
 
